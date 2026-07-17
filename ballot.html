@@ -67,11 +67,37 @@
     font-size: 14px;
     white-space: nowrap;
   }
+
+  /* DRAFT RESTORE BANNER */
+  #draftBanner {
+    display: none;               /* shown via JS only when a draft exists */
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #fff8e1;
+    border: 1px solid #f5c518;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  #draftBanner button { font-size: 14px; padding: 8px 16px; margin-left: 8px; }
+  #discardBtn { background: #e0443e; }
 </style>
 </head>
 <body>
 
 <h1>Bulldog Practice Ballot</h1>
+
+<div id="draftBanner">
+  <span>You have an unsaved ballot draft from a previous session.</span>
+  <span class="draftBtns">
+    <button type="button" id="restoreBtn">Restore draft</button>
+    <button type="button" id="discardBtn">Discard</button>
+  </span>
+</div>
+
 <form id="ballot">
 
   <fieldset>
@@ -229,6 +255,69 @@
     negPanel.classList.toggle('winner-glow', e.target.value === 'Negative');
   });
 
+  // ---- Draft autosave + restore banner ----
+  const DRAFT_KEY = 'bulldogBallotDraft';
+  let autosaveOn = false;
+
+  function readDraft() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); }
+    catch (err) { return null; }
+  }
+
+  function saveDraft() {
+    const draft = {};
+    new FormData(document.getElementById('ballot')).forEach(function (value, key) {
+      draft[key] = value;
+    });
+    draft.lowPointWin = document.getElementById('lpw').checked ? 'Yes' : '';
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); }
+    catch (err) { /* storage blocked/full (e.g. private mode) — fail silently */ }
+  }
+
+  function restoreDraft() {
+    const draft = readDraft();
+    if (!draft) return;
+    Object.keys(draft).forEach(function (key) {
+      const fields = document.querySelectorAll('[name="' + key + '"]');
+      if (!fields.length) return;
+      const field = fields[0];
+      if (field.type === 'checkbox') {
+        field.checked = (draft[key] === 'Yes');
+      } else if (field.type === 'radio') {
+        const match = document.querySelector('[name="' + key + '"][value="' + draft[key] + '"]');
+        if (match) match.checked = true;
+      } else {
+        field.value = draft[key];          // text, textarea, and <select> (roster + winner)
+      }
+    });
+    // Re-sync derived UI that doesn't fire on programmatic changes:
+    updateTotal('aff'); updateTotal('neg');
+    const winner = document.querySelector('[name="winner"]').value;
+    document.getElementById('affPanel').classList.toggle('winner-glow', winner === 'Affirmative');
+    document.getElementById('negPanel').classList.toggle('winner-glow', winner === 'Negative');
+  }
+
+  function enableAutosave() {
+    if (autosaveOn) return;
+    autosaveOn = true;
+    const form = document.getElementById('ballot');
+    form.addEventListener('input', saveDraft);
+    form.addEventListener('change', saveDraft);
+  }
+
+  document.getElementById('restoreBtn').addEventListener('click', function () {
+    restoreDraft();
+    document.getElementById('draftBanner').style.display = 'none';
+    enableAutosave();
+    saveDraft();                            // persist the restored state immediately
+  });
+
+  document.getElementById('discardBtn').addEventListener('click', function () {
+    localStorage.removeItem(DRAFT_KEY);
+    document.getElementById('draftBanner').style.display = 'none';
+    enableAutosave();
+  });
+
   // Load competitor names from the JSON file into both dropdowns.
   fetch('roster.json?v=' + Date.now())
     .then(function (r) { return r.json(); })
@@ -241,10 +330,22 @@
           sel.appendChild(opt);
         });
       });
+      // Roster is ready — now decide banner vs. straight-to-autosave:
+      if (readDraft()) {
+        document.getElementById('draftBanner').style.display = 'flex';
+      } else {
+        enableAutosave();
+      }
     })
     .catch(function () {
       document.getElementById('status').textContent =
         'Warning: could not load competitor list (roster.json).';
+      // Still offer the draft (names just won't refill without the roster):
+      if (readDraft()) {
+        document.getElementById('draftBanner').style.display = 'flex';
+      } else {
+        enableAutosave();
+      }
     });
 
   // Submit handler.
@@ -260,9 +361,10 @@
 
     fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
       .then(function (r) { return r.json(); })
-       .then(function (res) {
+      .then(function (res) {
         if (res.result === 'success') {
           status.textContent = '✓ Ballot submitted!';
+          localStorage.removeItem(DRAFT_KEY);
           e.target.reset();
           updateTotal('aff'); updateTotal('neg');
           document.getElementById('affPanel').classList.remove('winner-glow');
