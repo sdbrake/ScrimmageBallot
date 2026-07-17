@@ -16,12 +16,20 @@
          font-family: inherit; }
   textarea { min-height: 80px; resize: vertical; }
 
-  /* SIDE-BY-SIDE PANELS */
   .panels { display: flex; gap: 16px; }
   .panel { flex: 1; }
   .panel.aff { border-left: 5px solid #2a6df4; }
   .panel.neg { border-left: 5px solid #e0443e; }
   @media (max-width: 680px) { .panels { flex-direction: column; } }
+
+  /* CATEGORY SCORING TABLE */
+  table.cats { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  table.cats th, table.cats td { text-align: center; padding: 6px 2px;
+         border-bottom: 1px solid #eee; }
+  table.cats td:first-child { text-align: left; font-weight: 600; }
+  table.cats input[type="radio"] { width: auto; }
+  .total { margin-top: 10px; font-weight: bold; font-size: 16px; }
+  .total span { color: #2a6df4; }
 
   /* MOUSEOVER TOOLTIP */
   .tip { border-bottom: 1px dotted #666; cursor: help; position: relative; }
@@ -29,13 +37,13 @@
     content: attr(data-tip);
     position: absolute; left: 0; top: 135%; z-index: 10; white-space: pre-line;
     background: #222; color: #fff; padding: 10px 12px;
-    border-radius: 6px; width: 260px; font-weight: normal; font-size: 13px;
+    border-radius: 6px; width: 240px; font-weight: normal; font-size: 13px;
     line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,.3);
   }
 
   .lowpoint { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
   .lowpoint input { width: auto; }
-  .lowpoint label { margin: 0; font-weight: 600; }
+  .lowpoint label { margin: 0; }
 
   button { background: #2a6df4; color: #fff; border: none; font-size: 16px;
            padding: 12px 28px; border-radius: 8px; cursor: pointer; }
@@ -59,38 +67,26 @@
     <input name="resolution" required>
   </fieldset>
 
-  <!-- SPEAKER POINTS, SIDE BY SIDE -->
+  <!-- SPEAKER SCORING, SIDE BY SIDE -->
   <div class="panels">
     <fieldset class="panel aff">
       <legend>Affirmative</legend>
       <label>Competitor Name</label>
-      <input name="affName" required>
-      <label>
-        <span class="tip" data-tip="Scale (0–40):
-40–36  Superior Quality
-35–31  Above Average
-30–26  Needs Work
-20 & below  Poor Quality
-
-Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refutation.">Speaker Points (0–40) ⓘ</span>
-      </label>
-      <input name="affPoints" type="number" min="0" max="40" required>
+      <select name="affName" class="nameSelect" required>
+        <option value="">-- select competitor --</option>
+      </select>
+      <div class="catHolder" data-side="aff"></div>
+      <div class="total">Total: <span id="affTotalDisplay">0</span> / 40</div>
     </fieldset>
 
     <fieldset class="panel neg">
       <legend>Negative</legend>
       <label>Competitor Name</label>
-      <input name="negName" required>
-      <label>
-        <span class="tip" data-tip="Scale (0–40):
-40–36  Superior Quality
-35–31  Above Average
-30–26  Needs Work
-20 & below  Poor Quality
-
-Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refutation.">Speaker Points (0–40) ⓘ</span>
-      </label>
-      <input name="negPoints" type="number" min="0" max="40" required>
+      <select name="negName" class="nameSelect" required>
+        <option value="">-- select competitor --</option>
+      </select>
+      <div class="catHolder" data-side="neg"></div>
+      <div class="total">Total: <span id="negTotalDisplay">0</span> / 40</div>
     </fieldset>
   </div>
 
@@ -119,8 +115,6 @@ Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refu
   <div class="panels">
     <fieldset class="panel aff">
       <legend>Affirmative Comments</legend>
-      <label>Key Affirmative arguments?</label>
-      <textarea name="affArgs"></textarea>
       <label>What did you like best?</label>
       <textarea name="affLiked"></textarea>
       <label>Where can they improve?</label>
@@ -129,8 +123,6 @@ Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refu
 
     <fieldset class="panel neg">
       <legend>Negative Comments</legend>
-      <label>Key Negative arguments?</label>
-      <textarea name="negArgs"></textarea>
       <label>What did you like best?</label>
       <textarea name="negLiked"></textarea>
       <label>Where can they improve?</label>
@@ -148,28 +140,111 @@ Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refu
 </form>
 
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOEI7UvSIMHOn3OYa5QQJzuap6ImcWBicyfutAdEV1Ox2DeSfxgjnKfRi6jJcH0xo7/exec";
+  const SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
-  document.getElementById('ballot').addEventListener('submit', function(e) {
+  // The eight categories, with their tooltip explanations.
+  const CATEGORIES = [
+    { key: 'Delivery', label: 'Delivery',
+      tip: 'How well the debater speaks and carries themselves.' },
+    { key: 'Courtesy', label: 'Courtesy',
+      tip: 'How well the debater treats their opponents, judges, and subjects of discussion.' },
+    { key: 'AppropriateTone', label: 'Appropriate Tone',
+      tip: 'How well the debater appropriately matches the way they talk to the subject matter, the round, and the people in the room.' },
+    { key: 'Organization', label: 'Organization',
+      tip: 'How well the debater organizes their speeches and helps everyone follow along with their arguments.' },
+    { key: 'Logic', label: 'Logic',
+      tip: "How well the debater's arguments make sense, maintain consistency, and prove their side." },
+    { key: 'Support', label: 'Support',
+      tip: 'How well the debater supports their arguments with evidence, reason, examples, etc.' },
+    { key: 'CrossExamination', label: 'Cross Examination',
+      tip: 'How the debater uses their questions and answers.' },
+    { key: 'Refutation', label: 'Refutation',
+      tip: 'How well the debater answers arguments from the other side and responds to them.' }
+  ];
+
+  // Build a 1–5 scoring table for one side (aff or neg).
+  function buildTable(side) {
+    let header = '<tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>';
+    let rows = CATEGORIES.map(function (c) {
+      let radios = [1,2,3,4,5].map(function (n) {
+        return '<td><input type="radio" name="' + side + c.key +
+               '" value="' + n + '" required></td>';
+      }).join('');
+      return '<tr><td><span class="tip" data-tip="' + c.tip + '">' +
+             c.label + ' ⓘ</span></td>' + radios + '</tr>';
+    }).join('');
+    return '<table class="cats">' + header + rows + '</table>';
+  }
+
+  // Add up the checked radios for one side and update its total.
+  function updateTotal(side) {
+    let sum = 0;
+    CATEGORIES.forEach(function (c) {
+      let sel = document.querySelector('input[name="' + side + c.key + '"]:checked');
+      if (sel) sum += parseInt(sel.value, 10);
+    });
+    document.getElementById(side + 'TotalDisplay').textContent = sum;
+    return sum;
+  }
+
+  // Insert the tables, then recalc totals whenever a score changes.
+  document.querySelectorAll('.catHolder').forEach(function (holder) {
+    let side = holder.getAttribute('data-side');
+    holder.innerHTML = buildTable(side);
+  });
+  document.getElementById('ballot').addEventListener('change', function (e) {
+    if (e.target.type === 'radio') {
+      updateTotal(e.target.name.startsWith('aff') ? 'aff' : 'neg');
+    }
+  });
+
+  // Autofill today's date (format YYYY-MM-DD for the date input).
+  document.querySelector('[name="date"]').value =
+    new Date().toISOString().slice(0, 10);
+
+  // Load competitor names from the JSON file into both dropdowns.
+  fetch('competitors.json')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      document.querySelectorAll('.nameSelect').forEach(function (sel) {
+        data.competitors.forEach(function (name) {
+          let opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        });
+      });
+    })
+    .catch(function () {
+      document.getElementById('status').textContent =
+        'Warning: could not load competitor list (competitors.json).';
+    });
+
+  // Submit handler.
+  document.getElementById('ballot').addEventListener('submit', function (e) {
     e.preventDefault();
     const status = document.getElementById('status');
-    status.textContent = "Submitting…";
+    status.textContent = 'Submitting…';
 
     const payload = Object.fromEntries(new FormData(e.target).entries());
-    // Unchecked checkboxes don't appear in FormData, so set a default:
-    if (!payload.lowPointWin) payload.lowPointWin = "No";
+    if (!payload.lowPointWin) payload.lowPointWin = 'No';
+    payload.affTotal = updateTotal('aff');
+    payload.negTotal = updateTotal('neg');
 
     fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-      .then(r => r.json())
-      .then(res => {
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
         if (res.result === 'success') {
-          status.textContent = "✓ Ballot submitted!";
+          status.textContent = '✓ Ballot submitted!';
           e.target.reset();
+          updateTotal('aff'); updateTotal('neg');
+          document.querySelector('[name="date"]').value =
+            new Date().toISOString().slice(0, 10);
         } else {
-          status.textContent = "Error: " + res.message;
+          status.textContent = 'Error: ' + res.message;
         }
       })
-      .catch(err => { status.textContent = "Network error: " + err; });
+      .catch(function (err) { status.textContent = 'Network error: ' + err; });
   });
 </script>
 </body>
