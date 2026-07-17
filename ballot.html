@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulldog Practice Ballot</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 950px;
+         margin: 24px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px; }
+  legend { font-weight: bold; padding: 0 8px; }
+  label { display: block; margin: 10px 0 4px; font-weight: 600; }
+  input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box;
+         border: 1px solid #bbb; border-radius: 6px; font-size: 15px;
+         font-family: inherit; }
+  textarea { min-height: 80px; resize: vertical; }
+
+  /* SIDE-BY-SIDE PANELS */
+  .panels { display: flex; gap: 16px; }
+  .panel { flex: 1; }
+  .panel.aff { border-left: 5px solid #2a6df4; }
+  .panel.neg { border-left: 5px solid #e0443e; }
+  @media (max-width: 680px) { .panels { flex-direction: column; } }
+
+  /* MOUSEOVER TOOLTIP */
+  .tip { border-bottom: 1px dotted #666; cursor: help; position: relative; }
+  .tip:hover::after {
+    content: attr(data-tip);
+    position: absolute; left: 0; top: 135%; z-index: 10; white-space: pre-line;
+    background: #222; color: #fff; padding: 10px 12px;
+    border-radius: 6px; width: 260px; font-weight: normal; font-size: 13px;
+    line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+
+  .lowpoint { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .lowpoint input { width: auto; }
+  .lowpoint label { margin: 0; font-weight: 600; }
+
+  button { background: #2a6df4; color: #fff; border: none; font-size: 16px;
+           padding: 12px 28px; border-radius: 8px; cursor: pointer; }
+  #status { margin-left: 14px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Bulldog Practice Ballot</h1>
+<form id="ballot">
+
+  <fieldset>
+    <legend>Round Information</legend>
+    <div class="panels">
+      <div class="panel"><label>Judge</label>
+        <input name="judge" required></div>
+      <div class="panel"><label>Date</label>
+        <input name="date" type="date" required></div>
+    </div>
+    <label>Resolution</label>
+    <input name="resolution" required>
+  </fieldset>
+
+  <!-- SPEAKER POINTS, SIDE BY SIDE -->
+  <div class="panels">
+    <fieldset class="panel aff">
+      <legend>Affirmative</legend>
+      <label>Competitor Name</label>
+      <input name="affName" required>
+      <label>
+        <span class="tip" data-tip="Scale (0–40):
+40–36  Superior Quality
+35–31  Above Average
+30–26  Needs Work
+20 & below  Poor Quality
+
+Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refutation.">Speaker Points (0–40) ⓘ</span>
+      </label>
+      <input name="affPoints" type="number" min="0" max="40" required>
+    </fieldset>
+
+    <fieldset class="panel neg">
+      <legend>Negative</legend>
+      <label>Competitor Name</label>
+      <input name="negName" required>
+      <label>
+        <span class="tip" data-tip="Scale (0–40):
+40–36  Superior Quality
+35–31  Above Average
+30–26  Needs Work
+20 & below  Poor Quality
+
+Consider: Delivery, Courtesy, Tone, Organization, Logic, Support, Cross-Ex, Refutation.">Speaker Points (0–40) ⓘ</span>
+      </label>
+      <input name="negPoints" type="number" min="0" max="40" required>
+    </fieldset>
+  </div>
+
+  <!-- DECISION -->
+  <fieldset>
+    <legend>Decision</legend>
+    <label>I vote for the:</label>
+    <select name="winner" required>
+      <option value="">-- choose one --</option>
+      <option value="Affirmative">Affirmative</option>
+      <option value="Negative">Negative</option>
+    </select>
+
+    <label>Judge's Initials</label>
+    <input name="initials" required>
+
+    <div class="lowpoint">
+      <input type="checkbox" id="lpw" name="lowPointWin" value="Yes">
+      <label for="lpw">
+        <span class="tip" data-tip="Check this if you are awarding the win to the competitor with FEWER speaker points because you feel they won the debate.">Low point win? ⓘ</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <!-- COMMENTS, SIDE BY SIDE -->
+  <div class="panels">
+    <fieldset class="panel aff">
+      <legend>Affirmative Comments</legend>
+      <label>Key Affirmative arguments?</label>
+      <textarea name="affArgs"></textarea>
+      <label>What did you like best?</label>
+      <textarea name="affLiked"></textarea>
+      <label>Where can they improve?</label>
+      <textarea name="affImprove"></textarea>
+    </fieldset>
+
+    <fieldset class="panel neg">
+      <legend>Negative Comments</legend>
+      <label>Key Negative arguments?</label>
+      <textarea name="negArgs"></textarea>
+      <label>What did you like best?</label>
+      <textarea name="negLiked"></textarea>
+      <label>Where can they improve?</label>
+      <textarea name="negImprove"></textarea>
+    </fieldset>
+  </div>
+
+  <fieldset>
+    <legend>Reason(s) for Your Decision</legend>
+    <textarea name="rfd" style="min-height:140px" required></textarea>
+  </fieldset>
+
+  <button type="submit">Submit Ballot</button>
+  <span id="status"></span>
+</form>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOEI7UvSIMHOn3OYa5QQJzuap6ImcWBicyfutAdEV1Ox2DeSfxgjnKfRi6jJcH0xo7/exec";
+
+  document.getElementById('ballot').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const status = document.getElementById('status');
+    status.textContent = "Submitting…";
+
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    // Unchecked checkboxes don't appear in FormData, so set a default:
+    if (!payload.lowPointWin) payload.lowPointWin = "No";
+
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+      .then(r => r.json())
+      .then(res => {
+        if (res.result === 'success') {
+          status.textContent = "✓ Ballot submitted!";
+          e.target.reset();
+        } else {
+          status.textContent = "Error: " + res.message;
+        }
+      })
+      .catch(err => { status.textContent = "Network error: " + err; });
+  });
+</script>
+</body>
+</html>
