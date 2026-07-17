@@ -140,7 +140,7 @@
 </form>
 
 <script>
-  const SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOEI7UvSIMHOn3OYa5QQJzuap6ImcWBicyfutAdEV1Ox2DeSfxgjnKfRi6jJcH0xo7/exec";
 
   // The eight categories, with their tooltip explanations.
   const CATEGORIES = [
@@ -203,7 +203,7 @@
     new Date().toISOString().slice(0, 10);
 
   // Load competitor names from the JSON file into both dropdowns.
-  fetch('competitors.json')
+  fetch('roster.json')
     .then(function (r) { return r.json(); })
     .then(function (data) {
       document.querySelectorAll('.nameSelect').forEach(function (sel) {
