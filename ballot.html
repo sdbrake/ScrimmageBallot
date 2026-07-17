@@ -203,7 +203,7 @@
     new Date().toISOString().slice(0, 10);
 
   // Load competitor names from the JSON file into both dropdowns.
-  fetch('roster.json')
+  fetch('roster.json?v=' + Date.now())
     .then(function (r) { return r.json(); })
     .then(function (data) {
       document.querySelectorAll('.nameSelect').forEach(function (sel) {
