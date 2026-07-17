@@ -48,6 +48,19 @@
   button { background: #2a6df4; color: #fff; border: none; font-size: 16px;
            padding: 12px 28px; border-radius: 8px; cursor: pointer; }
   #status { margin-left: 14px; font-weight: bold; }
+
+  /* WINNER HIGHLIGHT */
+  .panel.winner-glow {
+    background: #fffbea;
+    box-shadow: 0 0 0 3px #f5c518, 0 4px 14px rgba(0,0,0,.15);
+    border-radius: 8px;
+    transition: box-shadow .2s, background .2s;
+  }
+  .panel.winner-glow legend::after {
+    content: " 🏆 WINNER";
+    color: #b8860b;
+    font-size: 14px;
+  }
 </style>
 </head>
 <body>
@@ -69,7 +82,7 @@
 
   <!-- SPEAKER SCORING, SIDE BY SIDE -->
   <div class="panels">
-    <fieldset class="panel aff">
+    <fieldset class="panel aff" id="affPanel">
       <legend>Affirmative</legend>
       <label>Competitor Name</label>
       <select name="affName" class="nameSelect" required>
@@ -79,7 +92,7 @@
       <div class="total">Total: <span id="affTotalDisplay">0</span> / 40</div>
     </fieldset>
 
-    <fieldset class="panel neg">
+    <fieldset class="panel neg" id="negPanel">
       <legend>Negative</legend>
       <label>Competitor Name</label>
       <select name="negName" class="nameSelect" required>
@@ -201,6 +214,14 @@
   // Autofill today's date (format YYYY-MM-DD for the date input).
   document.querySelector('[name="date"]').value =
     new Date().toISOString().slice(0, 10);
+
+  // Highlight the winning side's block when a winner is chosen.
+  document.querySelector('[name="winner"]').addEventListener('change', function (e) {
+    var affPanel = document.getElementById('affPanel');
+    var negPanel = document.getElementById('negPanel');
+    affPanel.classList.toggle('winner-glow', e.target.value === 'Affirmative');
+    negPanel.classList.toggle('winner-glow', e.target.value === 'Negative');
+  });
 
   // Load competitor names from the JSON file into both dropdowns.
   fetch('roster.json?v=' + Date.now())
