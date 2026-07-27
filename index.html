@@ -84,6 +84,13 @@
   }
   #draftBanner button { font-size: 14px; padding: 8px 16px; margin-left: 8px; }
   #discardBtn { background: #e0443e; }
+
+  /* TIPDA-ONLY BLOCKS: hidden unless the format is TIPDA */
+  .tipdaOnly { display: none; }
+  body.tipda .tipdaOnly { display: flex; }
+
+  /* COMPETITOR NAME SHOWN IN PANEL LEGENDS */
+  .nameTag { color: #444; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -107,15 +114,26 @@
         <input name="judge" required></div>
       <div class="panel"><label>Date</label>
         <input name="date" type="date" required></div>
+      <div class="panel">
+        <label>
+          <span class="tip" data-tip="IPDA is one-on-one: a single Affirmative and a single Negative speaker.&#10;&#10;TIPDA is two-on-two: each side has two speakers, so the ballot adds a second speaker box and comment box per side.">Format ⓘ</span>
+        </label>
+        <select name="format" id="formatSelect" required>
+          <option value="IPDA">IPDA (1 on 1)</option>
+          <option value="TIPDA">TIPDA (2 on 2)</option>
+        </select>
+      </div>
     </div>
     <label>Resolution</label>
     <input name="resolution" required>
   </fieldset>
 
-  <!-- SPEAKER SCORING, SIDE BY SIDE -->
+  <!-- SPEAKER SCORING — FIRST SPEAKERS (both formats) -->
   <div class="panels">
-    <fieldset class="panel aff" id="affPanel">
-      <legend>Affirmative</legend>
+    <fieldset class="panel aff" id="affPanel" data-team="aff">
+      <legend><span class="sideLabel" data-ipda="Affirmative"
+        data-tipda="Affirmative — Speaker 1">Affirmative</span><span
+        class="nameTag" data-name-tag="aff"></span></legend>
       <label>Competitor Name</label>
       <select name="affName" class="nameSelect" required>
         <option value="">-- select competitor --</option>
@@ -124,14 +142,43 @@
       <div class="total">Total: <span id="affTotalDisplay">0</span> / 40</div>
     </fieldset>
 
-    <fieldset class="panel neg" id="negPanel">
-      <legend>Negative</legend>
+    <fieldset class="panel neg" id="negPanel" data-team="neg">
+      <legend><span class="sideLabel" data-ipda="Negative"
+        data-tipda="Negative — Speaker 1">Negative</span><span
+        class="nameTag" data-name-tag="neg"></span></legend>
       <label>Competitor Name</label>
       <select name="negName" class="nameSelect" required>
         <option value="">-- select competitor --</option>
       </select>
       <div class="catHolder" data-side="neg"></div>
       <div class="total">Total: <span id="negTotalDisplay">0</span> / 40</div>
+    </fieldset>
+  </div>
+
+  <!-- SPEAKER SCORING — SECOND SPEAKERS (TIPDA only) -->
+  <div class="panels tipdaOnly" id="tipdaScoring">
+    <fieldset class="panel aff" id="aff2Panel" data-team="aff">
+      <legend><span class="sideLabel" data-ipda="Affirmative — Speaker 2"
+        data-tipda="Affirmative — Speaker 2">Affirmative — Speaker 2</span><span
+        class="nameTag" data-name-tag="aff2"></span></legend>
+      <label>Competitor Name</label>
+      <select name="aff2Name" class="nameSelect" required>
+        <option value="">-- select competitor --</option>
+      </select>
+      <div class="catHolder" data-side="aff2"></div>
+      <div class="total">Total: <span id="aff2TotalDisplay">0</span> / 40</div>
+    </fieldset>
+
+    <fieldset class="panel neg" id="neg2Panel" data-team="neg">
+      <legend><span class="sideLabel" data-ipda="Negative — Speaker 2"
+        data-tipda="Negative — Speaker 2">Negative — Speaker 2</span><span
+        class="nameTag" data-name-tag="neg2"></span></legend>
+      <label>Competitor Name</label>
+      <select name="neg2Name" class="nameSelect" required>
+        <option value="">-- select competitor --</option>
+      </select>
+      <div class="catHolder" data-side="neg2"></div>
+      <div class="total">Total: <span id="neg2TotalDisplay">0</span> / 40</div>
     </fieldset>
   </div>
 
@@ -156,22 +203,49 @@
     </div>
   </fieldset>
 
-  <!-- COMMENTS, SIDE BY SIDE -->
+  <!-- COMMENTS — FIRST SPEAKERS (both formats) -->
   <div class="panels">
-    <fieldset class="panel aff">
-      <legend>Affirmative Comments</legend>
-      <label>What did you like best?</label>
+    <fieldset class="panel aff" data-comment-side="aff">
+      <legend><span class="sideLabel" data-ipda="Affirmative Comments"
+        data-tipda="Affirmative Comments — Speaker 1">Affirmative Comments</span><span
+        class="nameTag" data-name-tag="aff"></span></legend>
+      <label class="likedLabel">What did you like best?</label>
       <textarea name="affLiked"></textarea>
-      <label>Where can they improve?</label>
+      <label class="improveLabel">Where can they improve?</label>
       <textarea name="affImprove"></textarea>
     </fieldset>
 
-    <fieldset class="panel neg">
-      <legend>Negative Comments</legend>
-      <label>What did you like best?</label>
+    <fieldset class="panel neg" data-comment-side="neg">
+      <legend><span class="sideLabel" data-ipda="Negative Comments"
+        data-tipda="Negative Comments — Speaker 1">Negative Comments</span><span
+        class="nameTag" data-name-tag="neg"></span></legend>
+      <label class="likedLabel">What did you like best?</label>
       <textarea name="negLiked"></textarea>
-      <label>Where can they improve?</label>
+      <label class="improveLabel">Where can they improve?</label>
       <textarea name="negImprove"></textarea>
+    </fieldset>
+  </div>
+
+  <!-- COMMENTS — SECOND SPEAKERS (TIPDA only) -->
+  <div class="panels tipdaOnly" id="tipdaComments">
+    <fieldset class="panel aff" data-comment-side="aff2">
+      <legend><span class="sideLabel" data-ipda="Affirmative Comments — Speaker 2"
+        data-tipda="Affirmative Comments — Speaker 2">Affirmative Comments — Speaker 2</span><span
+        class="nameTag" data-name-tag="aff2"></span></legend>
+      <label class="likedLabel">What did you like best?</label>
+      <textarea name="aff2Liked"></textarea>
+      <label class="improveLabel">Where can they improve?</label>
+      <textarea name="aff2Improve"></textarea>
+    </fieldset>
+
+    <fieldset class="panel neg" data-comment-side="neg2">
+      <legend><span class="sideLabel" data-ipda="Negative Comments — Speaker 2"
+        data-tipda="Negative Comments — Speaker 2">Negative Comments — Speaker 2</span><span
+        class="nameTag" data-name-tag="neg2"></span></legend>
+      <label class="likedLabel">What did you like best?</label>
+      <textarea name="neg2Liked"></textarea>
+      <label class="improveLabel">Where can they improve?</label>
+      <textarea name="neg2Improve"></textarea>
     </fieldset>
   </div>
 
@@ -186,6 +260,9 @@
 
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOEI7UvSIMHOn3OYa5QQJzuap6ImcWBicyfutAdEV1Ox2DeSfxgjnKfRi6jJcH0xo7/exec";
+
+  // Every scoreable speaker slot. The "2" slots only apply to TIPDA.
+  const SIDES = ['aff', 'neg', 'aff2', 'neg2'];
 
   // The eight categories, with their tooltip explanations.
   const CATEGORIES = [
@@ -207,12 +284,16 @@
       tip: 'How well the debater answers arguments from the other side and responds to them.' }
   ];
 
-  // Build a 1–5 scoring table for one side (aff or neg).
+  function isTipda() {
+    return document.getElementById('formatSelect').value === 'TIPDA';
+  }
+
+  // Build a 1–5 scoring table for one speaker slot.
   function buildTable(side) {
     let header = '<tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>';
     let rows = CATEGORIES.map(function (c) {
       let radios = [1,2,3,4,5].map(function (n) {
-        return '<td><input type="radio" name="' + side + c.key +
+        return '<td><input type="radio" data-side="' + side + '" name="' + side + c.key +
                '" value="' + n + '" required></td>';
       }).join('');
       return '<tr><td><span class="tip" data-tip="' + c.tip + '">' +
@@ -221,25 +302,88 @@
     return '<table class="cats">' + header + rows + '</table>';
   }
 
-  // Add up the checked radios for one side and update its total.
+  // Add up the checked radios for one slot and update its total.
   function updateTotal(side) {
     let sum = 0;
     CATEGORIES.forEach(function (c) {
       let sel = document.querySelector('input[name="' + side + c.key + '"]:checked');
       if (sel) sum += parseInt(sel.value, 10);
     });
-    document.getElementById(side + 'TotalDisplay').textContent = sum;
+    const display = document.getElementById(side + 'TotalDisplay');
+    if (display) display.textContent = sum;
     return sum;
   }
 
-  // Insert the tables, then recalc totals whenever a score changes.
+  // Put the chosen competitor's name into that slot's comment labels and legends.
+  function updateNameLabels(side) {
+    const sel = document.querySelector('[name="' + side + 'Name"]');
+    const name = (sel && sel.value) ? sel.value : '';
+
+    const block = document.querySelector('[data-comment-side="' + side + '"]');
+    if (block) {
+      block.querySelector('.likedLabel').textContent = name
+        ? 'What did you like best about ' + name + '?'
+        : 'What did you like best?';
+      block.querySelector('.improveLabel').textContent = name
+        ? 'Where can ' + name + ' improve?'
+        : 'Where can they improve?';
+    }
+
+    document.querySelectorAll('[data-name-tag="' + side + '"]').forEach(function (tag) {
+      tag.textContent = name ? ': ' + name : '';
+    });
+  }
+
+  // Re-apply the winner glow to whichever side won (both of its panels in TIPDA).
+  function refreshWinnerGlow() {
+    const winner = document.querySelector('[name="winner"]').value;
+    document.querySelectorAll('[data-team]').forEach(function (panel) {
+      const team = panel.getAttribute('data-team');
+      const isWinner = (winner === 'Affirmative' && team === 'aff') ||
+                       (winner === 'Negative'    && team === 'neg');
+      panel.classList.toggle('winner-glow', isWinner);
+    });
+  }
+
+  // Show/hide the second-speaker blocks and disable their fields when unused.
+  // Disabling matters: a hidden field that is still `required` blocks submission,
+  // and disabled fields are also excluded from FormData, keeping IPDA payloads clean.
+  function applyFormat() {
+    const tipda = isTipda();
+    document.body.classList.toggle('tipda', tipda);
+
+    document.querySelectorAll('.tipdaOnly').forEach(function (block) {
+      block.querySelectorAll('input, select, textarea').forEach(function (f) {
+        f.disabled = !tipda;
+      });
+    });
+
+    document.querySelectorAll('.sideLabel').forEach(function (el) {
+      el.textContent = el.getAttribute(tipda ? 'data-tipda' : 'data-ipda');
+    });
+
+    SIDES.forEach(updateNameLabels);
+    refreshWinnerGlow();
+  }
+
+  // Insert all four scoring tables (hidden ones are simply disabled later).
   document.querySelectorAll('.catHolder').forEach(function (holder) {
-    let side = holder.getAttribute('data-side');
-    holder.innerHTML = buildTable(side);
+    holder.innerHTML = buildTable(holder.getAttribute('data-side'));
   });
+
+  // One change handler for scores, names, winner, and format.
   document.getElementById('ballot').addEventListener('change', function (e) {
-    if (e.target.type === 'radio') {
-      updateTotal(e.target.name.startsWith('aff') ? 'aff' : 'neg');
+    if (e.target.type === 'radio' && e.target.dataset.side) {
+      updateTotal(e.target.dataset.side);
+    }
+    if (e.target.classList.contains('nameSelect')) {
+      updateNameLabels(e.target.name.replace(/Name$/, ''));
+    }
+    if (e.target.name === 'winner') {
+      refreshWinnerGlow();
+    }
+    if (e.target.id === 'formatSelect') {
+      applyFormat();
     }
   });
 
@@ -247,13 +391,7 @@
   document.querySelector('[name="date"]').value =
     new Date().toISOString().slice(0, 10);
 
-  // Highlight the winning side's block when a winner is chosen.
-  document.querySelector('[name="winner"]').addEventListener('change', function (e) {
-    var affPanel = document.getElementById('affPanel');
-    var negPanel = document.getElementById('negPanel');
-    affPanel.classList.toggle('winner-glow', e.target.value === 'Affirmative');
-    negPanel.classList.toggle('winner-glow', e.target.value === 'Negative');
-  });
+  applyFormat();   // start in the correct format state (IPDA by default)
 
   // ---- Draft autosave + restore banner ----
   const DRAFT_KEY = 'bulldogBallotDraft';
@@ -277,7 +415,15 @@
   function restoreDraft() {
     const draft = readDraft();
     if (!draft) return;
+
+    // Format first, so the TIPDA fields exist and are enabled before we fill them.
+    if (draft.format) {
+      document.getElementById('formatSelect').value = draft.format;
+      applyFormat();
+    }
+
     Object.keys(draft).forEach(function (key) {
+      if (key === 'format') return;
       const fields = document.querySelectorAll('[name="' + key + '"]');
       if (!fields.length) return;
       const field = fields[0];
@@ -287,14 +433,13 @@
         const match = document.querySelector('[name="' + key + '"][value="' + draft[key] + '"]');
         if (match) match.checked = true;
       } else {
-        field.value = draft[key];          // text, textarea, and <select> (roster + winner)
+        field.value = draft[key];          // text, textarea, and <select>
       }
     });
+
     // Re-sync derived UI that doesn't fire on programmatic changes:
-    updateTotal('aff'); updateTotal('neg');
-    const winner = document.querySelector('[name="winner"]').value;
-    document.getElementById('affPanel').classList.toggle('winner-glow', winner === 'Affirmative');
-    document.getElementById('negPanel').classList.toggle('winner-glow', winner === 'Negative');
+    SIDES.forEach(function (side) { updateTotal(side); updateNameLabels(side); });
+    refreshWinnerGlow();
   }
 
   function enableAutosave() {
@@ -318,7 +463,7 @@
     enableAutosave();
   });
 
-  // Load competitor names from the JSON file into both dropdowns.
+  // Load competitor names from the JSON file into all name dropdowns.
   fetch('roster.json?v=' + Date.now())
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -348,16 +493,40 @@
       }
     });
 
+  // Catch the same competitor being selected in two slots (easy to do with 4 dropdowns).
+  function duplicateName() {
+    const seen = {};
+    let dupe = null;
+    document.querySelectorAll('.nameSelect').forEach(function (sel) {
+      if (sel.disabled || !sel.value) return;
+      if (seen[sel.value]) dupe = sel.value;
+      seen[sel.value] = true;
+    });
+    return dupe;
+  }
+
   // Submit handler.
   document.getElementById('ballot').addEventListener('submit', function (e) {
     e.preventDefault();
     const status = document.getElementById('status');
+
+    const dupe = duplicateName();
+    if (dupe) {
+      status.textContent = '⚠ ' + dupe + ' is selected in more than one speaker box.';
+      return;
+    }
+
     status.textContent = 'Submitting…';
 
+    // Disabled (non-TIPDA) fields are automatically excluded from FormData.
     const payload = Object.fromEntries(new FormData(e.target).entries());
     if (!payload.lowPointWin) payload.lowPointWin = 'No';
     payload.affTotal = updateTotal('aff');
     payload.negTotal = updateTotal('neg');
+    if (isTipda()) {
+      payload.aff2Total = updateTotal('aff2');
+      payload.neg2Total = updateTotal('neg2');
+    }
 
     fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
       .then(function (r) { return r.json(); })
@@ -366,9 +535,9 @@
           status.textContent = '✓ Ballot submitted!';
           localStorage.removeItem(DRAFT_KEY);
           e.target.reset();
-          updateTotal('aff'); updateTotal('neg');
-          document.getElementById('affPanel').classList.remove('winner-glow');
-          document.getElementById('negPanel').classList.remove('winner-glow');
+          applyFormat();                    // reset() restores the default format
+          SIDES.forEach(function (side) { updateTotal(side); updateNameLabels(side); });
+          refreshWinnerGlow();              // clears the glow on all panels
           document.querySelector('[name="date"]').value =
             new Date().toISOString().slice(0, 10);
         } else {
