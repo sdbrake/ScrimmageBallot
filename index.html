@@ -91,6 +91,18 @@
 
   /* COMPETITOR NAME SHOWN IN PANEL LEGENDS */
   .nameTag { color: #444; font-weight: 600; }
+
+  /* PRACTICE-FOCUS BOX (shown only for students with a focus on file) */
+  .focusBox {
+    display: none;                  /* revealed by JS when a focus applies */
+    background: #eef4ff;
+    border: 1px solid #2a6df4;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 12px;
+  }
+  .focusBox .focusLabel { margin-top: 0; color: #14418c; }
+  .focusBox .focusLabel::before { content: "🎯 "; }
 </style>
 </head>
 <body>
@@ -345,6 +357,49 @@
     });
   }
 
+  // ---- Per-student practice focuses (loaded from roster.json) ----
+  let FOCUSES = {};
+
+  // Turn a roster focus entry into a label (for the sheet) and a question (for the judge).
+  function focusFor(name) {
+    const f = FOCUSES[name];
+    if (!f) return null;
+    if (typeof f === 'string') {
+      return { label: f, question: 'What did you think of ' + name + "'s " + f + '?' };
+    }
+    return { label: f.label || f.question || '', question: f.question || '' };
+  }
+
+  // Show, hide, or relabel one slot's focus box based on who's selected.
+  function updateFocus(side) {
+    const box = document.querySelector('[data-focus-side="' + side + '"]');
+    if (!box) return;
+    const sel    = document.querySelector('[name="' + side + 'Name"]');
+    const area   = box.querySelector('textarea');
+    const hidden = box.querySelector('input[type="hidden"]');
+    const label  = box.querySelector('.focusLabel');
+
+    // Slot must be active (TIPDA-aware) and have a named student with a focus.
+    const focus = (sel && !sel.disabled && sel.value) ? focusFor(sel.value) : null;
+
+    if (!focus) {
+      if (box.dataset.focusFor) area.value = '';   // drop an answer that no longer applies
+      box.dataset.focusFor = '';
+      hidden.value = '';
+      area.disabled = hidden.disabled = true;      // excluded from FormData
+      box.style.display = 'none';
+      return;
+    }
+    if (box.dataset.focusFor !== focus.question) {
+      area.value = '';                             // different student or focus → fresh box
+      box.dataset.focusFor = focus.question;
+    }
+    label.textContent = focus.question;
+    hidden.value = focus.label;
+    area.disabled = hidden.disabled = false;
+    box.style.display = 'block';
+  }
+
   // Show/hide the second-speaker blocks and disable their fields when unused.
   // Disabling matters: a hidden field that is still `required` blocks submission,
   // and disabled fields are also excluded from FormData, keeping IPDA payloads clean.
@@ -362,7 +417,7 @@
       el.textContent = el.getAttribute(tipda ? 'data-tipda' : 'data-ipda');
     });
 
-    SIDES.forEach(updateNameLabels);
+    SIDES.forEach(function (side) { updateNameLabels(side); updateFocus(side); });
     refreshWinnerGlow();
   }
 
@@ -371,13 +426,29 @@
     holder.innerHTML = buildTable(holder.getAttribute('data-side'));
   });
 
+  // Inject a focus box into each comment panel (same pattern as the score tables,
+  // so the field names are generated, never hand-typed).
+  document.querySelectorAll('[data-comment-side]').forEach(function (block) {
+    const side = block.getAttribute('data-comment-side');
+    const box = document.createElement('div');
+    box.className = 'focusBox';
+    box.setAttribute('data-focus-side', side);
+    box.innerHTML =
+      '<label class="focusLabel"></label>' +
+      '<textarea name="' + side + 'FocusResponse"></textarea>' +
+      '<input type="hidden" name="' + side + 'Focus" value="">';
+    block.appendChild(box);
+  });
+
   // One change handler for scores, names, winner, and format.
   document.getElementById('ballot').addEventListener('change', function (e) {
     if (e.target.type === 'radio' && e.target.dataset.side) {
       updateTotal(e.target.dataset.side);
     }
     if (e.target.classList.contains('nameSelect')) {
-      updateNameLabels(e.target.name.replace(/Name$/, ''));
+      const slot = e.target.name.replace(/Name$/, '');
+      updateNameLabels(slot);
+      updateFocus(slot);
     }
     if (e.target.name === 'winner') {
       refreshWinnerGlow();
@@ -424,6 +495,7 @@
 
     Object.keys(draft).forEach(function (key) {
       if (key === 'format') return;
+      if (/Focus$|FocusResponse$/.test(key)) return;   // handled below
       const fields = document.querySelectorAll('[name="' + key + '"]');
       if (!fields.length) return;
       const field = fields[0];
@@ -438,7 +510,16 @@
     });
 
     // Re-sync derived UI that doesn't fire on programmatic changes:
-    SIDES.forEach(function (side) { updateTotal(side); updateNameLabels(side); });
+    SIDES.forEach(function (side) {
+      updateTotal(side); updateNameLabels(side); updateFocus(side);
+    });
+    // Focus answers restore LAST: updateFocus() clears the box when the question
+    // changes, so setting the text any earlier would wipe it.
+    SIDES.forEach(function (side) {
+      const area  = document.querySelector('[data-focus-side="' + side + '"] textarea');
+      const saved = draft[side + 'FocusResponse'];
+      if (area && !area.disabled && saved) area.value = saved;
+    });
     refreshWinnerGlow();
   }
 
@@ -463,10 +544,11 @@
     enableAutosave();
   });
 
-  // Load competitor names from the JSON file into all name dropdowns.
+  // Load competitor names (and practice focuses) from the JSON file.
   fetch('roster.json?v=' + Date.now())
     .then(function (r) { return r.json(); })
     .then(function (data) {
+      FOCUSES = data.focuses || {};
       document.querySelectorAll('.nameSelect').forEach(function (sel) {
         data.competitors.forEach(function (name) {
           let opt = document.createElement('option');
@@ -475,6 +557,7 @@
           sel.appendChild(opt);
         });
       });
+      SIDES.forEach(updateFocus);            // focuses are known now
       // Roster is ready — now decide banner vs. straight-to-autosave:
       if (readDraft()) {
         document.getElementById('draftBanner').style.display = 'flex';
@@ -518,7 +601,7 @@
 
     status.textContent = 'Submitting…';
 
-    // Disabled (non-TIPDA) fields are automatically excluded from FormData.
+    // Disabled (non-TIPDA, no-focus) fields are automatically excluded from FormData.
     const payload = Object.fromEntries(new FormData(e.target).entries());
     if (!payload.lowPointWin) payload.lowPointWin = 'No';
     payload.affTotal = updateTotal('aff');
@@ -532,11 +615,14 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (res.result === 'success') {
-          status.textContent = '✓ Ballot submitted!';
+          status.textContent = '✓ Ballot submitted!' +
+            (res.rows > 1 ? ' (' + res.rows + ' speaker entries)' : '');
           localStorage.removeItem(DRAFT_KEY);
           e.target.reset();
           applyFormat();                    // reset() restores the default format
-          SIDES.forEach(function (side) { updateTotal(side); updateNameLabels(side); });
+          SIDES.forEach(function (side) {
+            updateTotal(side); updateNameLabels(side); updateFocus(side);
+          });
           refreshWinnerGlow();              // clears the glow on all panels
           document.querySelector('[name="date"]').value =
             new Date().toISOString().slice(0, 10);
